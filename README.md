@@ -1,1 +1,1 @@
-Wweight-Tracker by Webdesign Borgman
+Weight-Tracker by Webdesign Borgman
