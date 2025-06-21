@@ -12,6 +12,13 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
+interface ProfileSettings {
+  startWeight?: number;
+  goalWeight?: number;
+  startDate?: string;
+  goalDate?: string;
+}
+
 export default function InvoerPage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
@@ -24,13 +31,14 @@ export default function InvoerPage() {
   const [currentTaille, setCurrentTaille] = useState('');
   const [measurementDate, setMeasurementDate] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
+  const [success, setSuccess] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (user) {
       const ref = doc(db, 'users', user.uid, 'profile', 'settings');
       getDoc(ref).then(snapshot => {
         if (snapshot.exists()) {
-          const data = snapshot.data() as any;
+          const data = snapshot.data() as ProfileSettings;
           setStartWeight(data.startWeight?.toString() ?? '');
           setGoalWeight(data.goalWeight?.toString() ?? '');
           setStartDate(data.startDate ?? '');
@@ -58,6 +66,7 @@ export default function InvoerPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(undefined);
+    setSuccess(undefined);
     try {
       await saveSettings();
       await addDoc(collection(db, 'users', user!.uid, 'measurements'), {
@@ -66,9 +75,16 @@ export default function InvoerPage() {
         date: measurementDate,
         createdAt: serverTimestamp(),
       });
-      router.push('/overzicht');
-    } catch (err: any) {
-      setError(err.message);
+      setSuccess('Gegevens succesvol opgeslagen!');
+      setCurrentWeight('');
+      setCurrentTaille('');
+      setMeasurementDate('');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Onbekende fout');
+      }
     }
   };
 
@@ -157,6 +173,7 @@ export default function InvoerPage() {
             />
           </div>
           {error && <p className="text-red-600 font-medium">{error}</p>}
+          {success && <p className="text-green-600 font-medium">{success}</p>}
           <button
             type="submit"
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
