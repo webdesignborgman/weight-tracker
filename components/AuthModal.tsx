@@ -19,10 +19,13 @@ export default function AuthModal({ mode }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(undefined);
+    setLoading(true);
     try {
       let userCredential;
       if (mode === 'login') {
@@ -33,38 +36,61 @@ export default function AuthModal({ mode }: Props) {
 
       const user = userCredential.user;
 
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        provider: user.providerData[0]?.providerId,
-        createdAt: serverTimestamp(),
-      }, { merge: true });
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          uid: user.uid,
+          email: user.email,
+          provider: user.providerData[0]?.providerId,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
+      setSuccess(true);
       router.push('/overzicht');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Onbekende fout opgetreden.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     setError(undefined);
+    setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName,
-        photo: user.photoURL,
-        provider: user.providerData[0]?.providerId,
-        createdAt: serverTimestamp(),
-      }, { merge: true });
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName,
+          photo: user.photoURL,
+          provider: user.providerData[0]?.providerId,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
+      setSuccess(true);
       router.push('/overzicht');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Google login mislukt.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,6 +100,11 @@ export default function AuthModal({ mode }: Props) {
         <h2 className="text-2xl font-bold mb-6 text-gray-800 capitalize">
           {mode === 'login' ? 'Login' : 'Create Account'}
         </h2>
+
+        {success && (
+          <p className="mb-4 text-green-600 font-medium text-center">Succesvol ingelogd!</p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <input
             type="email"
@@ -93,19 +124,19 @@ export default function AuthModal({ mode }: Props) {
           />
           <button
             type="submit"
+            disabled={loading}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
           >
-            {mode === 'login' ? 'Login' : 'Sign Up'}
+            {loading ? 'Even wachten...' : mode === 'login' ? 'Login' : 'Sign Up'}
           </button>
         </form>
 
-        <div className="relative text-center my-4">
-          <div className="text-gray-400">of</div>
-        </div>
+        <div className="relative text-center my-4 text-gray-500">of</div>
 
         <button
           type="button"
           onClick={handleGoogleLogin}
+          disabled={loading}
           className="w-full py-3 bg-white border hover:bg-gray-100 rounded-lg font-medium flex items-center justify-center space-x-3 text-gray-700"
         >
           <svg
@@ -133,7 +164,7 @@ export default function AuthModal({ mode }: Props) {
           <span>Inloggen met Google</span>
         </button>
 
-        {error && <p className="mt-4 text-red-600 font-medium">{error}</p>}
+        {error && <p className="mt-4 text-red-600 font-medium text-center">{error}</p>}
       </div>
     </div>
   );
