@@ -84,7 +84,7 @@ export default function InvoerPage() {
     if (!user) return;
     const monday = getMonday(new Date()).toISOString().split('T')[0];
     const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
-    const updates: Promise<any>[] = [];
+    const updates: Promise<void>[] = [];
     snapshot.docs.forEach(docSnap => {
       const data = docSnap.data();
       if (data.weekStart !== monday) {
