@@ -30,7 +30,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-md py-4 px-6 flex justify-between items-center">
+    <header className="bg-slate-900 shadow-md py-4 px-6 flex justify-between items-center">
       <Link href="/" className="text-2xl font-bold text-blue-600">
         Weight Tracker
       </Link>
