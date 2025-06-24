@@ -14,36 +14,40 @@ interface Goal {
   completed: number;
 }
 
-export default function WeeklyGoalTracker({ layout = 'bar' }: { layout?: 'bar' }) {
+export default function WeeklyGoalTracker() {
   const [user] = useAuthState(auth);
   const [goals, setGoals] = useState<Goal[]>([]);
 
   useEffect(() => {
+    const fetchGoals = async () => {
+      if (!user) return;
+      const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Goal));
+      setGoals(data);
+    };
+
     if (user) fetchGoals();
   }, [user]);
 
-  const fetchGoals = async () => {
-    if (!user) return;
-    const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Goal));
-    setGoals(data);
-  };
-
   const updateCompleted = async (goalId: string, delta: number) => {
     if (!user) return;
+
+    // Update UI state immediately
     setGoals(prev =>
-      prev.map(g =>
-        g.id === goalId
-          ? { ...g, completed: Math.max(0, Math.min(g.frequency, g.completed + delta)) }
-          : g
+      prev.map(goal =>
+        goal.id === goalId
+          ? { ...goal, completed: Math.max(0, Math.min(goal.frequency, goal.completed + delta)) }
+          : goal
       )
     );
+
+    // Update Firestore
     const goalRef = doc(db, 'users', user.uid, 'goals', goalId);
-    const updatedGoal = goals.find(g => g.id === goalId);
-    if (!updatedGoal) return;
-    await updateDoc(goalRef, {
-      completed: Math.max(0, Math.min(updatedGoal.frequency, updatedGoal.completed + delta))
-    });
+    const currentGoal = goals.find(g => g.id === goalId);
+    if (!currentGoal) return;
+
+    const newCompleted = Math.max(0, Math.min(currentGoal.frequency, currentGoal.completed + delta));
+    await updateDoc(goalRef, { completed: newCompleted });
   };
 
   return (
