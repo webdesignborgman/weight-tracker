@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -51,6 +51,35 @@ export default function InvoerPage() {
   const [activity, setActivity] = useState('');
   const [frequency, setFrequency] = useState('');
 
+  const getMonday = (d: Date) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
+  };
+
+  const resetGoalsIfNewWeek = useCallback(async () => {
+    if (!user) return;
+    const monday = getMonday(new Date()).toISOString().split('T')[0];
+    const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
+    const updates: Promise<void>[] = [];
+    snapshot.docs.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.weekStart !== monday) {
+        updates.push(updateDoc(docSnap.ref, { completed: 0, weekStart: monday }));
+      }
+    });
+    await Promise.all(updates);
+  }, [user]);
+
+  const fetchGoals = useCallback(async () => {
+    if (!user) return;
+    await resetGoalsIfNewWeek();
+    const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
+    const result: Goal[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Goal));
+    setGoals(result);
+  }, [user, resetGoalsIfNewWeek]);
+
   useEffect(() => {
     if (user) {
       const ref = doc(db, 'users', user.uid, 'profile', 'settings');
@@ -67,40 +96,11 @@ export default function InvoerPage() {
 
       fetchGoals();
     }
-  }, [user]);
+  }, [user, fetchGoals]);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
   }, [loading, user, router]);
-
-  const getMonday = (d: Date) => {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
-  };
-
-  const resetGoalsIfNewWeek = async () => {
-    if (!user) return;
-    const monday = getMonday(new Date()).toISOString().split('T')[0];
-    const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
-    const updates: Promise<void>[] = [];
-    snapshot.docs.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.weekStart !== monday) {
-        updates.push(updateDoc(docSnap.ref, { completed: 0, weekStart: monday }));
-      }
-    });
-    await Promise.all(updates);
-  };
-
-  const fetchGoals = async () => {
-    if (!user) return;
-    await resetGoalsIfNewWeek();
-    const snapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
-    const result: Goal[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Goal));
-    setGoals(result);
-  };
 
   const saveSettings = async () => {
     if (!user) return;
