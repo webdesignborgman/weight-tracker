@@ -14,7 +14,7 @@ interface Goal {
   completed: number;
 }
 
-export default function WeeklyGoalTracker() {
+export default function WeeklyGoalTracker({ layout = 'bar' }: { layout?: 'bar' }) {
   const [user] = useAuthState(auth);
   const [goals, setGoals] = useState<Goal[]>([]);
 
