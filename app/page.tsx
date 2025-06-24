@@ -1,22 +1,22 @@
 'use client';
+
 import Link from 'next/link';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import Image from 'next/image';
 
 export default function Home() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
 
-  // Redirect authenticated users after initial load
   useEffect(() => {
     if (!loading && user) {
       router.push('/overzicht');
     }
   }, [user, loading, router]);
 
-  // Hide homepage while loading or if authenticated
   if (loading || user) {
     return null;
   }
@@ -38,10 +38,25 @@ export default function Home() {
         </Link>
       </div>
       <div className="mt-10 flex space-x-4">
-        {/* Replace with humorous images */}
-        <img src="/female.png" alt="Humorous female" className="h-48" />
-        <img src="/male.png" alt="Humorous male" className="h-48" />
+        <div className="relative h-48 w-48">
+          <Image
+            src="/female.png"
+            alt="Humorous female"
+            layout="fill"
+            objectFit="contain"
+            priority
+          />
+        </div>
+        <div className="relative h-48 w-48">
+          <Image
+            src="/male.png"
+            alt="Humorous male"
+            layout="fill"
+            objectFit="contain"
+            priority
+          />
+        </div>
       </div>
     </section>
-      );
-    }
+  );
+}
