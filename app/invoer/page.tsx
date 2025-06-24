@@ -13,6 +13,14 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
+interface UserSettings {
+  startWeight?: number;
+  goalWeight?: number;
+  startDate?: string;
+  goalDate?: string;
+  height?: number;
+}
+
 export default function InvoerPage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
@@ -33,7 +41,7 @@ export default function InvoerPage() {
       const ref = doc(db, 'users', user.uid, 'profile', 'settings');
       getDoc(ref).then(snapshot => {
         if (snapshot.exists()) {
-          const data = snapshot.data() as any;
+          const data = snapshot.data() as UserSettings;
           setStartWeight(data.startWeight?.toString() ?? '');
           setGoalWeight(data.goalWeight?.toString() ?? '');
           setStartDate(data.startDate ?? '');
@@ -73,8 +81,8 @@ export default function InvoerPage() {
     try {
       await saveSettings();
       showToast('Instellingen succesvol opgeslagen');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     }
   };
 
@@ -97,8 +105,8 @@ export default function InvoerPage() {
       }
 
       router.push('/overzicht');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     }
   };
 
