@@ -7,7 +7,7 @@ import { auth, db } from '../../lib/firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import BmiCard from '../../components/BmiCard';
-
+import WeeklyGoalTracker from '../../components/WeeklyGoalTracker';
 
 const WeightChart = dynamic(() => import('../../components/WeightChart'), { ssr: false });
 const TailleChart = dynamic(() => import('../../components/TailleChart'), { ssr: false });
@@ -67,19 +67,20 @@ export default function OverzichtPage() {
     <div className="mx-auto py-6 px-4 max-w-4xl sm:max-w-3xl md:max-w-2xl space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col justify-center items-center text-center">
-
           <h2 className="text-sm font-semibold text-gray-500 mb-1">Gewicht</h2>
           <p className="text-3xl font-bold text-gray-900">{latest?.weight ?? '-'} kg</p>
           <p className="text-sm text-gray-400">t.o.v. vorige week: 0 kg</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col justify-center items-center text-center">
-
           <h2 className="text-sm font-semibold text-gray-500 mb-1">Taille</h2>
           <p className="text-3xl font-bold text-gray-900">{latest?.taille ?? '-'} cm</p>
           <p className="text-sm text-gray-400">t.o.v. vorige week: 0 cm</p>
         </div>
-          <BmiCard bmi={bmi ? parseFloat(bmi) : 0} />
+        <BmiCard bmi={bmi ? parseFloat(bmi) : 0} />
       </div>
+
+      {/* Nieuw: Weekdoelen Tracker */}
+      <WeeklyGoalTracker />
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         <h3 className="text-lg font-semibold mb-3 text-gray-800">Gewicht Over Tijd</h3>
