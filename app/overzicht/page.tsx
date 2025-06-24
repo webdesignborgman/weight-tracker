@@ -1,10 +1,13 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '../../lib/firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
+import BmiCard from '../../components/BmiCard';
+
 
 const WeightChart = dynamic(() => import('../../components/WeightChart'), { ssr: false });
 const TailleChart = dynamic(() => import('../../components/TailleChart'), { ssr: false });
@@ -24,6 +27,7 @@ export default function OverzichtPage() {
   const [goalWeight, setGoalWeight] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [goalDate, setGoalDate] = useState<string>('');
+  const [height, setHeight] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
@@ -47,6 +51,7 @@ export default function OverzichtPage() {
           setGoalWeight(s.goalWeight);
           setStartDate(s.startDate);
           setGoalDate(s.goalDate);
+          setHeight(s.height ?? null);
         }
       };
       fetchData();
@@ -56,20 +61,24 @@ export default function OverzichtPage() {
   if (loading || !user) return null;
 
   const latest = data[data.length - 1];
+  const bmi = latest && height ? (latest.weight / Math.pow(height / 100, 2)).toFixed(1) : null;
 
   return (
     <div className="mx-auto py-6 px-4 max-w-4xl sm:max-w-3xl md:max-w-2xl space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col justify-center items-center text-center">
+
           <h2 className="text-sm font-semibold text-gray-500 mb-1">Gewicht</h2>
           <p className="text-3xl font-bold text-gray-900">{latest?.weight ?? '-'} kg</p>
           <p className="text-sm text-gray-400">t.o.v. vorige week: 0 kg</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col justify-center items-center text-center">
+
           <h2 className="text-sm font-semibold text-gray-500 mb-1">Taille</h2>
           <p className="text-3xl font-bold text-gray-900">{latest?.taille ?? '-'} cm</p>
           <p className="text-sm text-gray-400">t.o.v. vorige week: 0 cm</p>
         </div>
+          <BmiCard bmi={bmi ? parseFloat(bmi) : 0} />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">

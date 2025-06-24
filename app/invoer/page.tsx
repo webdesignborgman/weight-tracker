@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../lib/firebase';
@@ -12,13 +13,6 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
-interface ProfileSettings {
-  startWeight?: number;
-  goalWeight?: number;
-  startDate?: string;
-  goalDate?: string;
-}
-
 export default function InvoerPage() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
@@ -27,22 +21,23 @@ export default function InvoerPage() {
   const [goalWeight, setGoalWeight] = useState('');
   const [startDate, setStartDate] = useState('');
   const [goalDate, setGoalDate] = useState('');
+  const [height, setHeight] = useState('');
   const [currentWeight, setCurrentWeight] = useState('');
   const [currentTaille, setCurrentTaille] = useState('');
   const [measurementDate, setMeasurementDate] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
-  const [success, setSuccess] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (user) {
       const ref = doc(db, 'users', user.uid, 'profile', 'settings');
       getDoc(ref).then(snapshot => {
         if (snapshot.exists()) {
-          const data = snapshot.data() as ProfileSettings;
+          const data = snapshot.data() as any;
           setStartWeight(data.startWeight?.toString() ?? '');
           setGoalWeight(data.goalWeight?.toString() ?? '');
           setStartDate(data.startDate ?? '');
           setGoalDate(data.goalDate ?? '');
+          setHeight(data.height?.toString() ?? '');
         }
       });
     }
@@ -55,36 +50,37 @@ export default function InvoerPage() {
   const saveSettings = async () => {
     if (!user) return;
     const ref = doc(db, 'users', user.uid, 'profile', 'settings');
-    await setDoc(ref, {
-      startWeight: parseFloat(startWeight),
-      goalWeight: parseFloat(goalWeight),
-      startDate,
-      goalDate,
-    }, { merge: true });
+    await setDoc(
+      ref,
+      {
+        startWeight: parseFloat(startWeight),
+        goalWeight: parseFloat(goalWeight),
+        startDate,
+        goalDate,
+        height: parseFloat(height),
+      },
+      { merge: true }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(undefined);
-    setSuccess(undefined);
     try {
       await saveSettings();
-      await addDoc(collection(db, 'users', user!.uid, 'measurements'), {
-        weight: parseFloat(currentWeight),
-        taille: parseFloat(currentTaille),
-        date: measurementDate,
-        createdAt: serverTimestamp(),
-      });
-      setSuccess('Gegevens succesvol opgeslagen!');
-      setCurrentWeight('');
-      setCurrentTaille('');
-      setMeasurementDate('');
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Onbekende fout');
+
+      if (currentWeight && currentTaille && measurementDate) {
+        await addDoc(collection(db, 'users', user!.uid, 'measurements'), {
+          weight: parseFloat(currentWeight),
+          taille: parseFloat(currentTaille),
+          date: measurementDate,
+          createdAt: serverTimestamp(),
+        });
       }
+
+      router.push('/overzicht');
+    } catch (err: any) {
+      setError(err.message);
     }
   };
 
@@ -92,88 +88,95 @@ export default function InvoerPage() {
 
   return (
     <div className="container mx-auto py-8 max-w-2xl space-y-6">
-      <h1 className="text-3xl font-semibold text-gray-800">Jouw Instellingen & Meting</h1>
+      <h1 className="text-3xl font-semibold text-white">Jouw Instellingen & Meting</h1>
 
-      <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
-        <h2 className="text-xl font-medium mb-4 text-gray-900">Instellingen</h2>
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl font-medium mb-4 text-white">Instellingen</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Startgewicht (kg)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Startgewicht (kg)</label>
             <input
               type="number"
               step="0.1"
               value={startWeight}
               onChange={e => setStartWeight(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Doelgewicht (kg)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Doelgewicht (kg)</label>
             <input
               type="number"
               step="0.1"
               value={goalWeight}
               onChange={e => setGoalWeight(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Startdatum</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Startdatum</label>
             <input
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Doeldatum</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Doeldatum</label>
             <input
               type="date"
               value={goalDate}
               onChange={e => setGoalDate(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1 text-gray-200">Lengte (cm)</label>
+            <input
+              type="number"
+              step="1"
+              value={height}
+              onChange={e => setHeight(e.target.value)}
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
-        <h2 className="text-xl font-medium mb-4 text-gray-900">Nieuwe Meting</h2>
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl font-medium mb-4 text-white">Nieuwe Meting</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Datum</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Datum</label>
             <input
               type="date"
               value={measurementDate}
               onChange={e => setMeasurementDate(e.target.value)}
-              required
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Gewicht (kg)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Gewicht (kg)</label>
             <input
               type="number"
               step="0.1"
               value={currentWeight}
               onChange={e => setCurrentWeight(e.target.value)}
-              required
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-800">Taille (cm)</label>
+            <label className="block text-sm font-medium mb-1 text-gray-200">Taille (cm)</label>
             <input
               type="number"
               step="0.1"
               value={currentTaille}
               onChange={e => setCurrentTaille(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          {error && <p className="text-red-600 font-medium">{error}</p>}
-          {success && <p className="text-green-600 font-medium">{success}</p>}
+          {error && <p className="text-red-500 font-medium">{error}</p>}
           <button
             type="submit"
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
