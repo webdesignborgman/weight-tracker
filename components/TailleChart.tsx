@@ -12,10 +12,7 @@ import {
 } from 'recharts';
 import { parseISO, format, addDays, differenceInDays } from 'date-fns';
 
-interface Measurement {
-  date: string;
-  taille: number | null;
-}
+
 
 interface Props {
   data: { date: string; taille: number }[];
