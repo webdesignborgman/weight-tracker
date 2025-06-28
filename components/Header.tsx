@@ -36,9 +36,9 @@ export default function Header() {
       </Link>
 
       <nav className="flex items-center gap-6">
-        <Link href="/overzicht" className="text-gray-700 hover:text-blue-500 font-medium">Overzicht</Link>
-        <Link href="/invoer" className="text-gray-700 hover:text-blue-500 font-medium">Invoer</Link>
-        <Link href="/about" className="text-gray-700 hover:text-blue-500 font-medium">About</Link>
+        <Link href="/overzicht" className="text-gray-400 hover:text-blue-500 font-medium">Overzicht</Link>
+        <Link href="/invoer" className="text-gray-400 hover:text-blue-500 font-medium">Invoer</Link>
+        <Link href="/about" className="text-gray-400 hover:text-blue-500 font-medium">About</Link>
 
         {user ? (
           <div className="relative" ref={dropdownRef}>
@@ -59,7 +59,7 @@ export default function Header() {
                   {user.displayName?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
-              <span className="text-gray-700 font-medium hidden sm:inline">
+              <span className="text-gray-400 font-medium hidden sm:inline">
                 {user.displayName?.split(' ')[0]}
               </span>
             </button>
