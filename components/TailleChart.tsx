@@ -76,7 +76,9 @@ export default function TailleChart({ data, startDate, goalDate }: Props) {
           ticks={ticks}
           interval={0}
           tickFormatter={formatTick}
-          tick={{ fontSize: 10, angle: -45, textAnchor: 'end' }}
+          tick={{ fontSize: 10 }}
+          angle={-45}
+          textAnchor="end"
           tickMargin={12}
           height={50}
           stroke="#888"
