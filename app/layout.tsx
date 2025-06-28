@@ -11,6 +11,9 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className={`${geist.className} flex flex-col min-h-screen bg-slate-900 text-white`}>
         <Header />
         <main className="flex-grow">{children}</main>
