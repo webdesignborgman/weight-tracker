@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import 'chartjs-adapter-date-fns';
+
 
 interface Props {
   data: { date: string; weight: number }[];
