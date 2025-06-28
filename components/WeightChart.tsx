@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import 'chartjs-adapter-date-fns';
 
 interface Props {
   data: { date: string; weight: number }[];
@@ -26,13 +27,13 @@ export default function WeightChart({
   startDate,
   goalDate,
 }: Props) {
-  // Converteer datums naar timestamps
+  // Zet data om naar timestamps
   const parsedData = data.map((entry) => ({
     timestamp: new Date(entry.date).getTime(),
     Gewicht: entry.weight,
   }));
 
-  // Punten voor het doeltraject
+  // Doellijn
   const goalLine =
     startWeight !== null &&
     goalWeight !== null &&
@@ -50,35 +51,34 @@ export default function WeightChart({
         ]
       : [];
 
-  // Verzamel alle timestamps (metingen + doel)
+  // Ticks & domain voor X-as
   const allTimestamps = [
     ...parsedData.map((d) => d.timestamp),
     ...goalLine.map((d) => d.timestamp),
   ];
-
-  // Unieke, gesorteerde ticks voor de X-as
   const ticks = Array.from(new Set(allTimestamps)).sort((a, b) => a - b);
-
-  // Domain voor x-as (timestamps)
   const minX = ticks[0];
   const maxX = ticks[ticks.length - 1];
 
-  // Domain voor y-as (gewichten)
+  // Domain voor Y-as
   const weights = parsedData.map((d) => d.Gewicht);
   if (startWeight !== null) weights.push(startWeight);
   if (goalWeight !== null) weights.push(goalWeight);
   const minY = Math.min(...weights) - 2;
   const maxY = Math.max(...weights) + 2;
 
-  // Functie om timestamp naar DD-MM te formatteren
-  const formatTick = (timestamp: number) =>
-    new Date(timestamp).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit' });
+  // Formatter alleen dag-maand
+  const formatTick = (ts: number) =>
+    new Date(ts).toLocaleDateString('nl-NL', {
+      day: '2-digit',
+      month: '2-digit',
+    });
 
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart
         data={parsedData}
-        margin={{ top: 10, right: 20, left: 20, bottom: 60 }}
+        margin={{ top: 10, right: 30, left: 20, bottom: 60 }}
       >
         <XAxis
           type="number"
@@ -88,13 +88,15 @@ export default function WeightChart({
           ticks={ticks}
           interval={0}
           tickFormatter={formatTick}
-          tick={{ fontSize: 10, angle: -45, textAnchor: 'end' }}
+          tick={{ fontSize: 10 }}    // alleen fontSize in tick
+          angle={-45}                // roteren via XAxis prop
+          textAnchor="end"           // alignering via XAxis prop
           tickMargin={12}
           height={50}
           stroke="#888"
         />
         <YAxis domain={[minY, maxY]} stroke="#888" fontSize={12} />
-        <Tooltip labelFormatter={formatTick} />
+        <Tooltip labelFormatter={(value) => formatTick(value as number)} />
         <Legend verticalAlign="bottom" height={36} />
 
         {goalLine.length > 0 && (
@@ -108,7 +110,6 @@ export default function WeightChart({
             name="Doeltraject"
           />
         )}
-
         <Line
           type="monotone"
           dataKey="Gewicht"
