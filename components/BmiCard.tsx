@@ -1,12 +1,16 @@
-// components/BmiCard.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { InformationCircleIcon } from '@heroicons/react/24/outline';
+import { InformationCircleIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
+
+interface BmiEntry {
+  date: string;
+  bmi?: number; // nu optioneel, voor oude data
+}
 
 interface Props {
-  bmi: number;
+  entries?: BmiEntry[];
 }
 
 function getBmiCategory(bmi: number) {
@@ -16,15 +20,90 @@ function getBmiCategory(bmi: number) {
   return { label: 'Obesitas', color: 'text-red-500' };
 }
 
-export default function BmiCard({ bmi }: Props) {
+export default function BmiCard({ entries }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const { label, color } = getBmiCategory(bmi);
+
+  // Filter op entries die een geldige bmi hebben
+  const validEntries = Array.isArray(entries)
+    ? entries.filter(entry => typeof entry.bmi === 'number' && !isNaN(entry.bmi))
+    : [];
+
+  if (validEntries.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center text-center">
+        <div className="text-gray-500">Nog geen BMI-gegevens beschikbaar</div>
+      </div>
+    );
+  }
+
+  // Sorteer entries op datum (oud -> nieuw)
+  const sorted = [...validEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const startBmi = sorted[0].bmi!;
+  const previousBmi = sorted.length > 1 ? sorted[sorted.length - 2].bmi! : undefined;
+  const currentBmi = sorted[sorted.length - 1].bmi!;
+
+  const { label, color } = getBmiCategory(currentBmi);
+
+  const diffPrev = previousBmi !== undefined ? currentBmi - previousBmi : undefined;
+  const diffStart = currentBmi - startBmi;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center text-center">
+      <div className="flex gap-4 mb-2">
+        <div className="flex flex-col items-center">
+          <span className="text-xs text-gray-500">Start BMI</span>
+          <span className="font-semibold text-gray-800">
+            {typeof startBmi === 'number' ? startBmi.toFixed(1) : '—'}
+          </span>
+          <span className={`text-xs flex items-center gap-1 ${
+            typeof diffStart === 'number'
+              ? diffStart < 0
+                ? 'text-green-500'
+                : diffStart > 0
+                ? 'text-red-500'
+                : 'text-gray-400'
+              : 'text-gray-400'
+          }`}>
+            {typeof diffStart === 'number'
+              ? diffStart < 0
+                ? <ArrowTrendingDownIcon className="w-3 h-3" />
+                : diffStart > 0
+                ? <ArrowTrendingUpIcon className="w-3 h-3" />
+                : null
+              : null}
+            {typeof diffStart === 'number' && diffStart !== 0 ? diffStart.toFixed(1) : '—'}
+          </span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-xs text-gray-500">Vorige BMI</span>
+          <span className="font-semibold text-gray-800">
+            {typeof previousBmi === 'number' ? previousBmi.toFixed(1) : '—'}
+          </span>
+          <span className={`text-xs flex items-center gap-1 ${
+            typeof diffPrev === 'number'
+              ? diffPrev < 0
+                ? 'text-green-500'
+                : diffPrev > 0
+                ? 'text-red-500'
+                : 'text-gray-400'
+              : 'text-gray-400'
+          }`}>
+            {typeof diffPrev === 'number'
+              ? diffPrev < 0
+                ? <ArrowTrendingDownIcon className="w-3 h-3" />
+                : diffPrev > 0
+                ? <ArrowTrendingUpIcon className="w-3 h-3" />
+                : null
+              : null}
+            {typeof diffPrev === 'number' && diffPrev !== 0 ? diffPrev.toFixed(1) : '—'}
+          </span>
+        </div>
+      </div>
+
       <div className="relative w-24 h-24 mb-3">
         <div className="w-full h-full rounded-full border-8 border-blue-500 flex items-center justify-center text-2xl font-bold text-gray-900">
-          {bmi.toFixed(1)}
+          {typeof currentBmi === 'number' ? currentBmi.toFixed(1) : '—'}
         </div>
       </div>
       <p className={`text-sm font-medium ${color}`}>{label}</p>

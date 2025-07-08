@@ -51,6 +51,7 @@ export default function InvoerPage() {
   const [activity, setActivity] = useState('');
   const [frequency, setFrequency] = useState('');
 
+  // Functie om de maandag van deze week te bepalen
   const getMonday = (d: Date) => {
     const date = new Date(d);
     const day = date.getDay();
@@ -131,15 +132,35 @@ export default function InvoerPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(undefined);
+
     try {
       await saveSettings();
 
       if (currentWeight && currentTaille && measurementDate) {
+        // Lengte uit settings (in cm), omzetten naar meter
+        const lengteMeters = parseFloat(height) / 100;
+        const gewicht = parseFloat(currentWeight);
+
+        // Check of lengte en gewicht geldig zijn
+        if (!lengteMeters || lengteMeters < 1.0) {
+          setError('Vul je lengte correct in bij Instellingen.');
+          return;
+        }
+        if (!gewicht || gewicht < 20) {
+          setError('Vul een realistisch gewicht in.');
+          return;
+        }
+
+        // BMI berekenen en afronden op 1 decimaal
+        const bmi = Math.round((gewicht / (lengteMeters * lengteMeters)) * 10) / 10;
+
         await addDoc(collection(db, 'users', user!.uid, 'measurements'), {
-          weight: parseFloat(currentWeight),
+          weight: gewicht,
           taille: parseFloat(currentTaille),
           date: measurementDate,
+          bmi, // BMI direct opslaan!
           createdAt: serverTimestamp(),
+          height: parseFloat(height) // optioneel: sla ook gebruikte lengte op
         });
         showToast('Instellingen en meting opgeslagen');
       } else {
