@@ -16,6 +16,14 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
+interface Measurement {
+  id: string;
+  date: string;
+  weight: number;
+  taille: number;
+  bmi?: number;
+}
+
 interface UserSettings {
   startWeight?: number;
   goalWeight?: number;
@@ -50,6 +58,11 @@ export default function InvoerPage() {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [activity, setActivity] = useState('');
   const [frequency, setFrequency] = useState('');
+  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editTaille, setEditTaille] = useState('');
 
   // Functie om de maandag van deze week te bepalen
   const getMonday = (d: Date) => {
@@ -81,6 +94,15 @@ export default function InvoerPage() {
     setGoals(result);
   }, [user, resetGoalsIfNewWeek]);
 
+  const fetchMeasurements = useCallback(async () => {
+    if (!user) return;
+    const snap = await getDocs(collection(db, 'users', user.uid, 'measurements'));
+    const list: Measurement[] = snap.docs
+      .map(d => ({ id: d.id, ...(d.data() as Omit<Measurement, 'id'>) }))
+      .filter(m => m.date);
+    setMeasurements(list);
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       const ref = doc(db, 'users', user.uid, 'profile', 'settings');
@@ -96,8 +118,9 @@ export default function InvoerPage() {
       });
 
       fetchGoals();
+      fetchMeasurements();
     }
-  }, [user, fetchGoals]);
+  }, [user, fetchGoals, fetchMeasurements]);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
@@ -214,6 +237,46 @@ export default function InvoerPage() {
     await fetchGoals();
   };
 
+  const beginEdit = (m: Measurement) => {
+    setEditingId(m.id);
+    setEditDate(m.date);
+    setEditWeight(String(m.weight));
+    setEditTaille(String(m.taille));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDate('');
+    setEditWeight('');
+    setEditTaille('');
+  };
+
+  const saveEdit = async () => {
+    if (!user || !editingId) return;
+    const weightNum = Number(editWeight);
+    const tailleNum = Number(editTaille);
+    if (!editDate || isNaN(weightNum) || isNaN(tailleNum)) return;
+    // BMI opnieuw berekenen indien lengte bekend
+    const h = parseFloat(height);
+    const bmi = h && h > 0 ? Math.round((weightNum / ((h / 100) * (h / 100))) * 10) / 10 : undefined;
+    const ref = doc(db, 'users', user.uid, 'measurements', editingId);
+    await updateDoc(ref, {
+      date: editDate,
+      weight: weightNum,
+      taille: tailleNum,
+      ...(bmi !== undefined ? { bmi, height: h } : {}),
+    });
+    setMeasurements(prev => prev.map(m => m.id === editingId ? { ...m, date: editDate, weight: weightNum, taille: tailleNum, ...(bmi !== undefined ? { bmi } : {}) } : m));
+    cancelEdit();
+  };
+
+  const removeMeasurement = async (id: string) => {
+    if (!user) return;
+    await deleteDoc(doc(db, 'users', user.uid, 'measurements', id));
+    setMeasurements(prev => prev.filter(m => m.id !== id));
+    if (editingId === id) cancelEdit();
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -282,6 +345,83 @@ export default function InvoerPage() {
                 </div>
               </li>
             ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Metingen overzicht */}
+      <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl font-medium mb-4 text-white">Metingen</h2>
+        {measurements.length === 0 ? (
+          <p className="text-gray-300">Nog geen metingen ingevoerd.</p>
+        ) : (
+          <ul className="divide-y divide-slate-700">
+            {[...measurements]
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map(m => (
+                <li key={m.id} className="py-3">
+                  {editingId === m.id ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <input
+                        type="date"
+                        className="w-full p-2 rounded bg-slate-700 text-white border border-slate-600"
+                        value={editDate}
+                        onChange={e => setEditDate(e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-full p-2 rounded bg-slate-700 text-white border border-slate-600"
+                        value={editWeight}
+                        onChange={e => setEditWeight(e.target.value)}
+                        placeholder="Gewicht (kg)"
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-full p-2 rounded bg-slate-700 text-white border border-slate-600"
+                        value={editTaille}
+                        onChange={e => setEditTaille(e.target.value)}
+                        placeholder="Taille (cm)"
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={saveEdit}
+                          className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                        >
+                          Opslaan
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-3 py-2 rounded bg-slate-600 hover:bg-slate-500 text-white text-sm"
+                        >
+                          Annuleren
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-center">
+                      <div className="text-gray-300">{new Date(m.date).toLocaleDateString('nl-NL')}</div>
+                      <div className="text-white font-medium">{m.weight} kg</div>
+                      <div className="text-white font-medium">{m.taille} cm</div>
+                      <div className="sm:col-span-2 flex gap-2 sm:justify-end">
+                        <button
+                          onClick={() => beginEdit(m)}
+                          className="px-3 py-2 rounded bg-slate-600 hover:bg-slate-500 text-white text-sm"
+                        >
+                          Bewerken
+                        </button>
+                        <button
+                          onClick={() => removeMeasurement(m.id)}
+                          className="px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
+                        >
+                          Verwijderen
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
           </ul>
         )}
       </div>
